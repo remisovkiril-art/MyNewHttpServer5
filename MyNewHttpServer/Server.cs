@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Net;
 using System.Text;
-using System.Net;
-using System.Text.Json;
+using System.Web;
 namespace MyNewHttpServer;
 public class Student
 {
@@ -20,12 +18,7 @@ internal class Server
         new Student { Id = 2, Name = "Petro", Surname = "Petrov", Group = "A1" },
         new Student { Id = 3, Name = "Oleg", Surname = "Sydorenko", Group = "A2" },
         new Student { Id = 4, Name = "Anna", Surname = "Koval", Group = "A2" },
-        new Student { Id = 5, Name = "Olena", Surname = "Melnyk", Group = "A3" },
-        new Student { Id = 6, Name = "Dmytro", Surname = "Tkachenko", Group = "A3" },
-        new Student { Id = 7, Name = "Serhii", Surname = "Bondar", Group = "A1" },
-        new Student { Id = 8, Name = "Nazar", Surname = "Kravets", Group = "A2" },
-        new Student { Id = 9, Name = "Ira", Surname = "Shevchenko", Group = "A3" },
-        new Student { Id = 10, Name = "Maksym", Surname = "Boyko", Group = "A1" }
+        new Student { Id = 5, Name = "Olena", Surname = "Melnyk", Group = "A3" }
     };
     public async Task RunServer()
     {
@@ -39,93 +32,75 @@ internal class Server
             var req = ctx.Request;
             var res = ctx.Response;
             string url = req.Url?.AbsolutePath ?? "/";
-            try
+            if (req.HttpMethod == "GET")
             {
-                if (req.HttpMethod == "GET")
+                if (url == "/student")
                 {
-                    if (url.StartsWith("/student"))
-                    {
-                        await HandleGetStudents(req, res, url);
-                        continue;
-                    }
+                    await ShowStudents(res);
+                }
+                else
+                {
                     await ReturnPage(res, url);
                 }
-                else if (req.HttpMethod == "POST")
-                {
-                    if (url == "/student")
-                    {
-                        using var reader = new StreamReader(req.InputStream);
-                        string body = await reader.ReadToEndAsync();
-                        var student = JsonSerializer.Deserialize<Student>(body);
-                        if (student != null)
-                        {
-                            student.Id = students.Max(s => s.Id) + 1;
-                            students.Add(student);
-                            string json = JsonSerializer.Serialize(student);
-                            await WriteResponse(res, json, "application/json");
-                        }
-                    }
-                }
-                else if (req.HttpMethod == "PUT")
-                {
-                    if (url.StartsWith("/student/"))
-                    {
-                        var parts = url.Split('/');
-                        int id = int.Parse(parts[2]);
-                        using var reader = new StreamReader(req.InputStream);
-                        string body = await reader.ReadToEndAsync();
-                        var updated = JsonSerializer.Deserialize<Student>(body);
-                        var student = students.FirstOrDefault(s => s.Id == id);
-                        if (student != null && updated != null)
-                        {
-                            student.Name = updated.Name;
-                            student.Surname = updated.Surname;
-                            student.Group = updated.Group;
-                            string json = JsonSerializer.Serialize(student);
-                            await WriteResponse(res, json, "application/json");
-                        }
-                    }
-                }
-                res.Close();
             }
-            catch (Exception ex)
+            else if (req.HttpMethod == "POST")
             {
-                Console.WriteLine(ex.Message);
-                res.StatusCode = 500;
-                res.Close();
+                if (url == "/register")
+                {
+                    await Register(req, res);
+                }
             }
+            res.Close();
         }
     }
-    private async Task HandleGetStudents(HttpListenerRequest req, HttpListenerResponse res, string url)
+    private async Task Register(HttpListenerRequest req, HttpListenerResponse res)
     {
-        if (url == "/student")
+        using var reader = new StreamReader(req.InputStream);
+        string body = await reader.ReadToEndAsync();
+        var data = HttpUtility.ParseQueryString(body);
+        string login = data["login"] ?? "";
+        string password = data["password"] ?? "";
+        string repeat = data["repeat"] ?? "";
+        string email = data["email"] ?? "";
+        string agree = data["agree"] ?? "";
+        List<string> errors = new();
+        if (login.Length < 5)
+            errors.Add("Login должен быть больше 5 символов");
+        if (password != repeat)
+            errors.Add("Пароли не совпадают");
+        if (string.IsNullOrEmpty(email))
+            errors.Add("Email обязательный");
+        if (agree != "on")
+            errors.Add("Нужно согласиться");
+        string html;
+        if (errors.Count > 0)
         {
-            var query = req.QueryString;
-            IEnumerable<Student> result = students;
-            if (!string.IsNullOrEmpty(query["Name"]))
-                result = result.Where(s => s.Name == query["Name"]);
-            if (!string.IsNullOrEmpty(query["Group"]))
-                result = result.Where(s => s.Group == query["Group"]);
-            string html = "<h1>Students</h1><ul>";
-            foreach (var s in result)
-            {
-                html += $"<li>{s.Id} {s.Name} {s.Surname} ({s.Group})</li>";
-            }
-            html += "</ul>";
-            await WriteResponse(res, html, "text/html");
+            html = "<h2>Ошибки:</h2><ul>";
+            foreach (var error in errors)
+                html += $"<li>{error}</li>";
+            html += "</ul><a href='/'>Назад</a>";
         }
         else
         {
-            var parts = url.Split('/');
-            if (parts.Length == 3 && int.TryParse(parts[2], out int id))
-            {
-                var student = students.FirstOrDefault(s => s.Id == id);
-                string html = student != null
-                    ? $"<p>{student.Id} {student.Name} {student.Surname} Group: {student.Group}</p>"
-                    : "<p>Student not found</p>";
-                await WriteResponse(res, html, "text/html");
-            }
+            Console.WriteLine($"Email sent to {email}");
+            html = $"""
+            <h2>Регистрация успешна</h2>
+            <p>Пользователь {login} зарегистрирован.</p>
+            <p>Письмо отправлено на {email}</p>
+            <a href="/">На главную</a>
+            """;
         }
+        await WriteResponse(res, html);
+    }
+    private async Task ShowStudents(HttpListenerResponse res)
+    {
+        string html = "<h1>Students</h1><ul>";
+        foreach (var s in students)
+        {
+            html += $"<li>{s.Id} {s.Name} {s.Surname} ({s.Group})</li>";
+        }
+        html += "</ul><a href='/'>Назад</a>";
+        await WriteResponse(res, html);
     }
     private async Task ReturnPage(HttpListenerResponse res, string url)
     {
@@ -138,14 +113,13 @@ internal class Server
         };
         string path = Path.Combine(AppContext.BaseDirectory, "wwwroot", "pages", file);
         string html = await File.ReadAllTextAsync(path);
-        await WriteResponse(res, html, "text/html");
+        await WriteResponse(res, html);
     }
-    private async Task WriteResponse(HttpListenerResponse res, string content, string type)
+    private async Task WriteResponse(HttpListenerResponse res, string content)
     {
         byte[] buffer = Encoding.UTF8.GetBytes(content);
         res.ContentLength64 = buffer.Length;
-        res.ContentType = type;
-        res.StatusCode = 200;
+        res.ContentType = "text/html; charset=utf-8";
         await res.OutputStream.WriteAsync(buffer);
     }
 }
