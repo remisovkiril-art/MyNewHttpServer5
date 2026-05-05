@@ -1,0 +1,14 @@
+GET http://localhost:8080/about
+
+###
+
+POST  http://localhost:8080
+ContentType: "application/json"
+
+{
+  "id":1,
+  "name":"Bob"
+}
+
+###
+DELETE http://localhost:8080

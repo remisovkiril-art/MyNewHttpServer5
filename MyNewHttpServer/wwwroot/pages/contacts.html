@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Контакти</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+
+        header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        nav {
+            background-color: #34495e;
+            padding: 10px;
+            text-align: center;
+        }
+
+            nav a {
+                color: white;
+                margin: 0 15px;
+                text-decoration: none;
+            }
+
+        .container {
+            padding: 20px;
+            background: white;
+            margin: 20px;
+            border-radius: 5px;
+        }
+
+        form input, form textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+        }
+
+        form button {
+            padding: 10px 20px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        footer {
+            background-color: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Контакти</h1>
+    </header>
+
+    <nav>
+        <a href="#">Головна</a>
+        <a href="about">Про нас</a>
+        <a href="contacts">Контакти</a>
+    </nav>
+
+    <div class="container">
+        <h2>Зв'яжіться з нами</h2>
+        <p>Email: travelblog@example.com</p>
+        <p>Телефон: +380 00 000 0000</p>
+
+        <h3>Форма зворотного зв'язку</h3>
+        <form>
+            <input type="text" placeholder="Ваше ім'я" required>
+            <input type="email" placeholder="Ваш email" required>
+            <textarea rows="5" placeholder="Ваше повідомлення" required></textarea>
+            <button type="submit">Надіслати</button>
+        </form>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Блог про подорожі</p>
+    </footer>
+
+</body>
+</html>
